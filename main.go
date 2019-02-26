@@ -1,54 +1,27 @@
 package main
 
 import (
-	"html/template"
-	"io/ioutil"
+	"context"
+	"fmt"
 	"log"
-	"net/http"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
 )
 
-type Page struct {
-	Title string
-	Body  []byte
-}
-
-func (p *Page) save() error {
-	filename := p.Title + ".txt"
-	return ioutil.WriteFile(filename, p.Body, 0600)
-}
-
-func loadPage(title string) (*Page, error) {
-	filename := title + ".txt"
-	body, err := ioutil.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-	return &Page{Title: title, Body: body}, nil
-}
-
-func renderTemplate(w http.ResponseWriter, tmpl string, p *Page) {
-	t, _ := template.ParseFiles(tmpl + ".html")
-	t.Execute(w, p)
-}
-
-func viewHandler(w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Path[len("/view/"):]
-	p, _ := loadPage(title)
-	renderTemplate(w, "view", p)
-}
-
-func editHandler(w http.ResponseWriter, r *http.Request) {
-	title := r.URL.Path[len("/edit/"):]
-	p, err := loadPage(title)
-	if err != nil {
-		p = &Page{Title: title}
-	}
-	renderTemplate(w, "edit", p)
-}
-
 func main() {
-	http.HandleFunc("/view/", viewHandler)
-	http.HandleFunc("/edit/", editHandler)
-	//http.HandleFunc("/save/", saveHandler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	conn, err := ethclient.Dial("https://rinkeby.infura.io/uaGUMcMAZhXm16k8nb8b")
+	if err != nil {
+		log.Fatal("Whoops something went wrong!", err)
+	}
+
+	ctx := context.Background()
+	tx, err := conn.TransactionReceipt(ctx, common.HexToHash("0xd336078cca5c3235775e95161524c631623be4446c3b4e9d8d744268bfdeece4"))
+	if (err == nil) {
+		fmt.Println(tx)
+	}
+
+	bal, err := conn.BalanceAt(ctx, common.HexToAddress("0xa1201A92B56CB45860808c1F2fDe9f482cCD2790"), nil)
+	if (err == nil) {
+		fmt.Println(bal , "wei")
+	}
 }
